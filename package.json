@@ -11,7 +11,7 @@
     "start": "bun ./dist/index.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix && prettier . --write",
-    "scan": "bun ./scripts/scan-dom.ts"
+    "scan": "bun ./src/scripts/scan.ts"
   },
   "dependencies": {
     "@upstash/redis": "^1.35.4",
