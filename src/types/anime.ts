@@ -11,6 +11,13 @@ export interface Anime {
   rating?: number;
 }
 
+export interface SamehadakuHomeItem {
+  title: string;
+  slug: string;
+  image: string;
+  last_episode: string;
+}
+
 export interface ScrapeResult {
   success: boolean;
   data?: unknown;
