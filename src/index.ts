@@ -1,6 +1,7 @@
 import { Elysia } from 'elysia';
 
 import { SERVER_PORT } from './config/app';
+import { AppController } from './controllers/AppController';
 import errorHandler from './middleware/errorHandler';
 import requestLogger from './middleware/requestLogger';
 import responseTime from './middleware/responseTime';
@@ -15,8 +16,7 @@ new Elysia()
 
   .use(requestLogger)
   .get('/', () => {
-    logger.info('API root accessed');
-    return { message: 'Welcome to Anime Scrapper API!' };
+    return AppController.getRoot();
   })
   .use(apiRoutes)
   .listen({ port: SERVER_PORT, hostname: '0.0.0.0' });
