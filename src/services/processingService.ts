@@ -27,17 +27,22 @@ export class ProcessingService {
         );
 
       if (jikanResults.length > 0) {
-        const bestMatch = jikanResults[0];
+        // Gunakan fungsi pencocokan berdasarkan slug untuk mendapatkan hasil yang lebih tepat
+        const bestMatch = JikanIntegrationService.findMatchBySlug(normalizedSlug, jikanResults);
 
-        bestMatch.slug = slug;
+        if (bestMatch) {
+          bestMatch.slug = slug;
 
-        await CacheService.cacheIntegrationData(slug, bestMatch);
+          await CacheService.cacheIntegrationData(slug, bestMatch);
 
-        logger.info(
-          `Stored integration data for slug: ${slug} with Jikan ID: ${bestMatch.id}`
-        );
+          logger.info(
+            `Stored integration data for slug: ${slug} with Jikan ID: ${bestMatch.id}`
+          );
 
-        await HomeCacheService.addAnimeToHomeCache(bestMatch);
+          await HomeCacheService.addAnimeToHomeCache(bestMatch);
+        } else {
+          logger.info(`No matching anime found in Jikan for slug: ${slug}`);
+        }
       } else {
         logger.info(`No matching anime found in Jikan for slug: ${slug}`);
       }
