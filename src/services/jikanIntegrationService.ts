@@ -111,7 +111,185 @@ export class JikanIntegrationService {
       return null;
     }
 
-    return null;
+    // Ekstrak informasi season dari slug
+    const seasonInfo = this.extractSeasonInfo(normalizedSamehadakuSlug);
+    
+    // Jika tidak ada informasi season tambahan, kembalikan hasil pertama
+    if (!seasonInfo.hasSeason && !seasonInfo.hasPart && !seasonInfo.hasCour) {
+      return jikanResults[0];
+    }
+
+    // Cari anime yang cocok dengan informasi season
+    for (const jikanAnime of jikanResults) {
+      if (this.isSeasonMatch(jikanAnime.title, seasonInfo)) {
+        return jikanAnime;
+      }
+    }
+
+    // Jika tidak ada yang cocok secara spesifik, coba pencocokan berdasarkan kemiripan
+    // dengan prioritas pada judul yang mengandung informasi season
+    let bestMatch: Anime | null = null;
+    let bestScore = 0;
+
+    for (const jikanAnime of jikanResults) {
+      // Jika judul anime mengandung informasi season yang relevan
+      if (this.hasSeasonKeyword(jikanAnime.title, seasonInfo)) {
+        return jikanAnime; // Kembalikan langsung jika ditemukan kecocokan eksplisit
+      }
+
+      const similarityScore = stringSimilarity.compareTwoStrings(
+        normalizedSamehadakuSlug.replace(/-/g, ' ').toLowerCase(),
+        jikanAnime.title.toLowerCase()
+      );
+
+      if (similarityScore > bestScore) {
+        bestScore = similarityScore;
+        bestMatch = jikanAnime;
+      }
+    }
+
+    return bestMatch;
+  }
+
+  // -- Extract Season Info --
+  private static extractSeasonInfo(slug: string): {
+    hasSeason: boolean;
+    seasonNumber?: number;
+    hasPart: boolean;
+    partNumber?: number;
+    hasCour: boolean;
+    courNumber?: number;
+    rawInfo: string;
+  } {
+    // Cek season (contoh: "season-2", "season2", "s2")
+    const seasonRegex = /season[-]?(\d+)|s(\d+)/i;
+    const seasonMatch = slug.match(seasonRegex);
+    
+    // Cek part (contoh: "part-2", "part2", "pt2")
+    const partRegex = /part[-]?(\d+)|pt(\d+)/i;
+    const partMatch = slug.match(partRegex);
+    
+    // Cek cour (contoh: "cour-2", "cour2", "2nd-cour")
+    const courRegex = /(\d+)[stndrh]?\s*-?\s*cour|cour[-]?(\d+)/i;
+    const courMatch = slug.match(courRegex);
+    
+    // Simpan informasi tambahan lainnya
+    const rawInfo = slug.replace(/season-\d+|season\d+|s\d+|part-\d+|part\d+|pt\d+|\d+st-cour|\d+nd-cour|\d+rd-cour|\d+th-cour|cour-\d+|cour\d+/gi, '').trim();
+
+    return {
+      hasSeason: !!seasonMatch,
+      seasonNumber: seasonMatch ? parseInt(seasonMatch[1] || seasonMatch[2]) : undefined,
+      hasPart: !!partMatch,
+      partNumber: partMatch ? parseInt(partMatch[1] || partMatch[2]) : undefined,
+      hasCour: !!courMatch,
+      courNumber: courMatch ? parseInt(courMatch[1] || courMatch[2]) : undefined,
+      rawInfo: rawInfo,
+    };
+  }
+
+  // -- Is Season Match --
+  private static isSeasonMatch(title: string, seasonInfo: {
+    hasSeason: boolean;
+    seasonNumber?: number;
+    hasPart: boolean;
+    partNumber?: number;
+    hasCour: boolean;
+    courNumber?: number;
+    rawInfo: string;
+  }): boolean {
+    const lowerTitle = title.toLowerCase();
+    
+    // Cek apakah title mengandung informasi season yang sesuai
+    if (seasonInfo.hasSeason && seasonInfo.seasonNumber) {
+      const seasonPatterns = [
+        `season ${seasonInfo.seasonNumber}`,
+        `s${seasonInfo.seasonNumber}`
+      ];
+      
+      return seasonPatterns.some(pattern => lowerTitle.includes(pattern.toLowerCase()));
+    }
+    
+    // Cek apakah title mengandung informasi part yang sesuai
+    if (seasonInfo.hasPart && seasonInfo.partNumber) {
+      const partPatterns = [
+        `part ${seasonInfo.partNumber}`,
+        `pt ${seasonInfo.partNumber}`
+      ];
+      
+      return partPatterns.some(pattern => lowerTitle.includes(pattern.toLowerCase()));
+    }
+    
+    // Cek apakah title mengandung informasi cour yang sesuai
+    if (seasonInfo.hasCour && seasonInfo.courNumber) {
+      const courPatterns = [
+        `${seasonInfo.courNumber}st cour`,
+        `${seasonInfo.courNumber}nd cour`,
+        `${seasonInfo.courNumber}rd cour`,
+        `${seasonInfo.courNumber}th cour`,
+        `cour ${seasonInfo.courNumber}`
+      ];
+      
+      return courPatterns.some(pattern => lowerTitle.includes(pattern.toLowerCase()));
+    }
+    
+    // Tambahkan logika untuk menangani kasus khusus seperti "cour-2" yang mungkin cocok dengan "Part 2"
+    if (seasonInfo.hasCour && seasonInfo.courNumber) {
+      // Jika slug mengandung informasi cour (seperti "cour-2"), 
+      // cek apakah title mengandung "Part" dengan nomor yang sama
+      const partPatterns = [
+        `part ${seasonInfo.courNumber}`,
+        `pt ${seasonInfo.courNumber}`
+      ];
+      
+      return partPatterns.some(pattern => lowerTitle.includes(pattern.toLowerCase()));
+    }
+    
+    return false;
+  }
+
+  // -- Has Season Keyword --
+  private static hasSeasonKeyword(title: string, seasonInfo: {
+    hasSeason: boolean;
+    seasonNumber?: number;
+    hasPart: boolean;
+    partNumber?: number;
+    hasCour: boolean;
+    courNumber?: number;
+    rawInfo: string;
+  }): boolean {
+    const lowerTitle = title.toLowerCase();
+    
+    // Cek apakah title mengandung kata kunci season yang relevan
+    if (seasonInfo.hasSeason && seasonInfo.seasonNumber) {
+      return /\bseason\b|\bs\d+\b/.test(lowerTitle) && 
+             (lowerTitle.includes(`season ${seasonInfo.seasonNumber}`) || 
+              lowerTitle.includes(`s${seasonInfo.seasonNumber}`));
+    }
+    
+    if (seasonInfo.hasPart && seasonInfo.partNumber) {
+      return /\bpart\b|\bpt\b/.test(lowerTitle) &&
+             (lowerTitle.includes(`part ${seasonInfo.partNumber}`) || 
+              lowerTitle.includes(`pt ${seasonInfo.partNumber}`));
+    }
+    
+    if (seasonInfo.hasCour && seasonInfo.courNumber) {
+      // Cek pola cour
+      const hasCourPattern = /\bcour\b/.test(lowerTitle) &&
+             (lowerTitle.includes(`${seasonInfo.courNumber}st cour`) ||
+              lowerTitle.includes(`${seasonInfo.courNumber}nd cour`) ||
+              lowerTitle.includes(`${seasonInfo.courNumber}rd cour`) ||
+              lowerTitle.includes(`${seasonInfo.courNumber}th cour`) ||
+              lowerTitle.includes(`cour ${seasonInfo.courNumber}`));
+      
+      // Tambahkan pengecekan khusus untuk "Part" yang berkaitan dengan cour
+      const hasRelatedPartPattern = /\bpart\b|\bpt\b/.test(lowerTitle) &&
+             (lowerTitle.includes(`part ${seasonInfo.courNumber}`) || 
+              lowerTitle.includes(`pt ${seasonInfo.courNumber}`));
+      
+      return hasCourPattern || hasRelatedPartPattern;
+    }
+    
+    return false;
   }
 
   // -- Update Integration Cache --

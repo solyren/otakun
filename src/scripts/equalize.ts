@@ -22,11 +22,17 @@ async function main() {
     const jikanResults = await JikanIntegrationService.searchAnimeByNormalizedSlug(slug);
     
     if (jikanResults.length > 0) {
-      // Ambil ID dari hasil pertama (karena akan diurutkan berdasarkan kemiripan)
-      const anime = jikanResults[0];
-      console.log(`ID Jikan: ${anime.id}`);
-      console.log(`Judul: ${anime.title}`);
-      console.log(`Slug: ${anime.slug}`);
+      // Gunakan fungsi pencocokan berdasarkan slug untuk mendapatkan hasil yang lebih tepat
+      const bestMatch = JikanIntegrationService.findMatchBySlug(slug, jikanResults);
+      
+      if (bestMatch) {
+        console.log(`ID Jikan: ${bestMatch.id}`);
+        console.log(`Judul: ${bestMatch.title}`);
+        console.log(`Slug: ${bestMatch.slug}`);
+      } else {
+        logger.warn(`Tidak ditemukan anime yang cocok di Jikan untuk slug: ${slug}`);
+        console.log('ID Jikan: null');
+      }
     } else {
       logger.warn(`Tidak ditemukan anime di Jikan untuk slug: ${slug}`);
       console.log('ID Jikan: null');
