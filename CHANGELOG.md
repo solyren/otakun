@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/solyren/otakun/compare/watashime-v0.1.0...watashime-v0.2.0) (2025-10-19)
+
+
+### Features
+
+* **slugs:** fix normalize slug agar lebih powerfull ([#5](https://github.com/solyren/otakun/issues/5)) ([3ccb2cb](https://github.com/solyren/otakun/commit/3ccb2cb255d0f26825d92d7fc706b37f841d26b0))
+
 ## [0.1.0](https://github.com/solyren/otakun/compare/watashime-v0.0.1...watashime-v0.1.0) (2025-10-19)
 
 
